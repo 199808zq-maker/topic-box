@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Topic {
+  id             String    @id @default(uuid())
+  title          String    @db.VarChar(50)
+  description    String
+  images         Json      @default("[]")
+  category       String    @db.VarChar(20)
+  status         String    @default("published") @db.VarChar(20)
+  views          Int       @default(0)
+  likes          Int       @default(0)
+  commentsCount  Int       @default(0) @map("comments_count")
+  shares         Int       @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  comments       Comment[]
+  topicViews     TopicView[]
+
+  @@map("topics")
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  topicId    String   @map("topic_id")
+  nickname   String   @default("匿名店长") @db.VarChar(50)
+  content    String
+  likes      Int      @default(0)
+  status     String   @default("pending") @db.VarChar(20)
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  commentLikes CommentLike[]
+
+  @@map("comments")
+}
+
+model CommentLike {
+  id         String   @id @default(uuid())
+  commentId  String   @map("comment_id")
+  ipAddress  String   @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, ipAddress])
+  @@map("comment_likes")
+}
+
+model TopicView {
+  id         String   @id @default(uuid())
+  topicId    String   @map("topic_id")
+  ipAddress  String   @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent")
+  viewDate   String   @map("view_date") @db.VarChar(10)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([topicId, ipAddress, viewDate])
+  @@map("topic_views")
+}
